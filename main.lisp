@@ -1,6 +1,18 @@
-(defun gerar-dados (n)
-  (loop for i from 0 below n
-        collect (list (+ 2001 i) (random 11))))  ; RA e nota entre 0 e 10
+(load "~/quicklisp/setup.lisp")
+(ql:quickload "split-sequence")
+
+(defun ler-arquivo-notas (caminho)
+  "Lê o arquivo de notas e retorna uma lista de listas (RA Nota)."
+  (with-open-file (in caminho :direction :input)
+    ;; Pula a primeira linha (cabeçalho)
+    (read-line in nil nil)
+    (loop for linha = (read-line in nil nil)
+          while linha
+          collect (let* ((partes (split-sequence:split-sequence #\, linha))
+                         (ra-str (string-trim " " (first partes)))
+                         (nota-str (string-trim " " (second partes))))
+                    (list (parse-integer ra-str)
+                          (parse-integer nota-str))))))
 
 (defun filtrar-alunos (alunos)
   "Retorna lista com apenas alunos com nota >= 7."
@@ -9,26 +21,23 @@
 (defun calcular-media (notas)
   "Calcula a média de uma lista de números."
   (if notas
-      (/ (reduce #'+ notas) (length notas))
-      0))
+      (/ (reduce #'+ notas) (length notas) 1.0)
+      0.0))
 
 (defun extrair-notas (alunos)
   "Extrai apenas as notas de uma lista de alunos."
   (mapcar #'second alunos))
 
 ;; Execução principal
-(let* ((alunos (gerar-dados 10))) ; use 10 para facilitar a visualização
-  (format t "Lista de alunos gerada:~%")
-  (dolist (aluno alunos)
-    (format t "  RA: ~a, Nota: ~a~%" (first aluno) (second aluno)))
-
-  (let* ((alunos-filtrados (filtrar-alunos alunos)))
-    (format t "~%Alunos com nota >= 7:~%")
-    (dolist (aluno alunos-filtrados)
+(let* ((alunos (ler-arquivo-notas "notas.txt")))
+  (let* ((alunos-filtrados (filtrar-alunos alunos))
+         (primeiros-10 (subseq alunos-filtrados 0 (min 10 (length alunos-filtrados)))))
+    (format t "~%Primeiros 10 alunos com nota >= 7:~%")
+    (dolist (aluno primeiros-10)
       (format t "  RA: ~a, Nota: ~a~%" (first aluno) (second aluno)))
 
-    (let* ((notas-filtradas (extrair-notas alunos-filtrados)))
-      (format t "~%Notas filtradas: ~a~%" notas-filtradas)
+    (let* ((notas-escolhidas (extrair-notas primeiros-10)))
+      (format t "~%Notas escolhidas (até 10): ~a~%" notas-escolhidas)
 
-      (let ((media (calcular-media notas-filtradas)))
-        (format t "~%Média das notas filtradas: ~,2f~%" media)))))
+      (let ((media (calcular-media notas-escolhidas)))
+        (format t "~%Média dessas notas: ~,2f~%" media)))))
