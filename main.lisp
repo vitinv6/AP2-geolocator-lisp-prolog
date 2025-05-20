@@ -1,5 +1,15 @@
-(load "~/quicklisp/setup.lisp")
-(ql:quickload "split-sequence")
+(defun split-by-comma (linha)
+  "Divide uma string por vírgulas."
+  (let ((result '())
+        (start 0)
+        (len (length linha)))
+    (loop for i from 0 below len
+          do (if (char= (char linha i) #\,)
+                 (progn
+                   (push (subseq linha start i) result)
+                   (setf start (1+ i)))))
+    (push (subseq linha start) result)
+    (nreverse result)))
 
 (defun ler-arquivo-notas (caminho)
   "Lê o arquivo de notas e retorna uma lista de listas (RA Nota)."
@@ -8,7 +18,7 @@
     (read-line in nil nil)
     (loop for linha = (read-line in nil nil)
           while linha
-          collect (let* ((partes (split-sequence:split-sequence #\, linha))
+          collect (let* ((partes (split-by-comma linha))
                          (ra-str (string-trim " " (first partes)))
                          (nota-str (string-trim " " (second partes))))
                     (list (parse-integer ra-str)
